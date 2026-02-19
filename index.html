@@ -2,8 +2,9 @@
 <html>
 
 <head>
-    <title>Growth Charts</title>
+    <title>IAP Growth Charts</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="growth-data.js"></script>
 
     <style>
         body {
@@ -13,17 +14,19 @@
         }
 
         .container {
-            max-width: 500px;
+            max-width: 420px;
             margin: auto;
             background: white;
-            padding: 15px;
+            padding: 20px;
             border-radius: 10px
         }
 
-        input {
+        input,
+        select {
             width: 90%;
             padding: 8px;
-            margin: 5px
+            margin: 6px;
+            border: 1px solid #ccc
         }
 
         button {
@@ -31,18 +34,26 @@
             background: #0077b6;
             color: white;
             border: none;
-            margin: 10px
+            margin: 10px;
+            border-radius: 5px
         }
 
         canvas {
+            margin-top: 30px;
             background: white;
-            margin-top: 30px
+            max-width: 1500px;
+        }
+
+
+        .chart-title {
+            margin-top: 40px;
+            color: #023e8a
         }
 
         .result {
             font-weight: bold;
             color: #d90429;
-            margin-top: 10px
+            margin: 5px
         }
     </style>
 </head>
@@ -50,115 +61,158 @@
 <body>
 
     <div class="container">
-        <h2>Growth Report</h2>
-        <input id="age" placeholder="Age (5–18)">
-        <input id="height" placeholder="Height (cm)">
-        <input id="weight" placeholder="Weight (kg)">
-        <input id="waist" placeholder="Waist (cm)">
+        <h2>IAP Growth Charts</h2>
+
+        <select id="gender">
+            <option value="boy">Boy</option>
+            <option value="girl">Girl</option>
+        </select>
+
+        <select id="age"></select>
+
+        <input id="height" type="number" placeholder="Height (cm)" min="80" max="200">
+        <input id="weight" type="number" placeholder="Weight (kg)" min="10" max="120">
+        <input id="waist" type="number" placeholder="Waist (cm)" min="40" max="120">
+
         <button onclick="generate()">Generate Charts</button>
     </div>
 
-    <div class="result" id="r1"></div>
+    <h3 class="chart-title">Height-for-Age Percentile</h3>
+    <p id="heightResult" class="result"></p>
     <canvas id="heightChart"></canvas>
 
-    <div class="result" id="r2"></div>
+    <h3 class="chart-title">Weight-for-Age Percentile</h3>
+    <p id="weightResult" class="result"></p>
     <canvas id="weightChart"></canvas>
 
-    <div class="result" id="r3"></div>
+    <h3 class="chart-title">BMI-for-Age Percentile</h3>
+    <p id="bmiResult" class="result"></p>
     <canvas id="bmiChart"></canvas>
 
-    <div class="result" id="r4"></div>
+    <h3 class="chart-title">Waist Circumference Percentile</h3>
+    <p id="waistResult" class="result"></p>
     <canvas id="waistChart"></canvas>
 
     <script>
         let charts = [];
-        const ages = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-        const P = [3, 10, 25, 50, 75, 90, 97];
 
-        /* Percentile label plugin (RIGHT SIDE) */
+        /* populate age dropdown */
+        AGES.forEach(a => {
+            const op = document.createElement("option");
+            op.value = a;
+            op.innerText = a + " years";
+            age.appendChild(op);
+        });
+
+        /* Right-side percentile labels */
         const rightLabelPlugin = {
             id: 'rightLabel',
-            afterDatasetsDraw(chart, args, opts) {
+            afterDatasetsDraw(chart) {
                 const { ctx, chartArea: { right } } = chart;
-                ctx.save();
-                ctx.font = "bold 13px Arial";
-                chart.data.datasets.forEach((ds, i) => {
-                    if (!P[i]) return;
-                    const meta = chart.getDatasetMeta(i);
+                ctx.font = "bold 12px Arial";
+                chart.data.datasets.forEach((ds) => {
+                    if (ds.label === "Child") return;
+                    const meta = chart.getDatasetMeta(chart.data.datasets.indexOf(ds));
+                    if (!meta.data.length) return;
                     const last = meta.data[meta.data.length - 1];
-                    ctx.fillText(P[i], right + 8, last.y + 4);
+                    ctx.fillText(ds.label, right + 8, last.y);
                 });
-                ctx.restore();
             }
         };
 
-        /* SAMPLE CURVES */
-        const H = [[100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 154, 158, 160],
-        [105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 164, 166],
-        [108, 114, 120, 126, 132, 138, 144, 150, 155, 160, 165, 169, 172, 174],
-        [112, 118, 125, 132, 138, 145, 152, 158, 164, 169, 173, 176, 178, 179],
-        [116, 122, 129, 136, 143, 150, 157, 163, 169, 174, 178, 181, 183, 184],
-        [118, 125, 132, 139, 146, 153, 160, 166, 172, 177, 181, 184, 186, 187],
-        [120, 128, 135, 142, 149, 156, 163, 170, 176, 181, 185, 188, 190, 191]];
+        /* Draw chart */
+        function drawChart(id, curves, percentiles, value, age, label, min, max) {
+            const child = AGES.map(a => a == age ? value : null);
 
-        const WT = [[14, 15, 16, 17, 18, 19, 20, 22, 24, 26, 28, 30, 32, 34],
-        [15, 16, 17, 18, 19, 20, 22, 24, 26, 28, 30, 32, 34, 36],
-        [16, 17, 18, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39],
-        [18, 19, 20, 22, 24, 26, 29, 32, 35, 38, 41, 43, 45, 47],
-        [20, 21, 23, 25, 28, 31, 34, 38, 41, 44, 47, 49, 51, 53],
-        [22, 24, 26, 29, 32, 36, 40, 44, 48, 52, 55, 57, 59, 61],
-        [25, 27, 30, 33, 37, 42, 47, 52, 57, 61, 64, 66, 68, 70]];
-
-        const BMI = [[13, 13.2, 13.4, 13.6, 13.8, 14, 14.2, 14.5, 15, 15.3, 15.6, 16, 16.2, 16.5],
-        [14, 14.2, 14.4, 14.6, 14.8, 15, 15.2, 15.5, 16, 16.3, 16.6, 17, 17.2, 17.5],
-        [15, 15.3, 15.6, 15.9, 16.2, 16.6, 17, 17.5, 18, 18.5, 19, 19.4, 19.8, 20],
-        [16, 16.3, 16.7, 17.2, 17.8, 18.4, 19, 19.6, 20.2, 21, 21.6, 22, 22.5, 23],
-        [17.5, 18, 18.6, 19.2, 20, 21, 22, 23, 24, 25, 26, 27, 27.5, 28],
-        [19, 19.6, 20.2, 21, 22, 23.5, 25, 26.5, 28, 29, 30, 31, 31.5, 32],
-        [22, 23, 24, 25, 26.5, 28, 30, 32, 34, 35, 36, 37, 37.5, 38]];
-
-        const W = [[48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 67, 68, 69, 70],
-        [50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 69, 70, 71, 72],
-        [52, 54, 56, 58, 60, 63, 65, 67, 69, 71, 72, 73, 74, 75],
-        [58, 61, 64, 67, 70, 73, 76, 79, 82, 84, 86, 87, 88, 89],
-        [62, 65, 68, 71, 74, 77, 80, 83, 86, 88, 90, 91, 92, 93],
-        [64, 68, 71, 74, 77, 80, 84, 87, 90, 92, 94, 95, 96, 97],
-        [66, 70, 73, 76, 79, 83, 87, 90, 93, 95, 97, 98, 99, 100]];
-
-        function drawChart(canvas, curves, val, age, label, min, max) {
-            const child = ages.map(a => a === age ? val : null);
-            charts.push(new Chart(canvas, {
+            charts.push(new Chart(document.getElementById(id), {
                 type: 'line',
                 data: {
-                    labels: ages, datasets: [
-                        ...curves.map(c => ({ data: c, borderColor: "#000", borderWidth: 2, pointRadius: 0, tension: .4 })),
-                        { data: child, pointRadius: 8, backgroundColor: "blue", showLine: false }
+                    labels: AGES,
+                    datasets: [
+                        ...curves.map((c, i) => ({
+                            label: percentiles[i],
+                            data: c,
+                            borderColor: "#000",
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: .4
+                        })),
+                        {
+                            label: "Child",
+                            data: child,
+                            borderColor: "blue",
+                            backgroundColor: "blue",
+                            pointBackgroundColor: "blue",
+                            pointBorderColor: "white",
+                            pointBorderWidth: 2,
+                            pointRadius: 7,
+                            pointHoverRadius: 7,
+                            showLine: false,
+                            spanGaps: true
+                        }
+
                     ]
                 },
                 options: {
-                    layout: { padding: { right: 40 } },
+                    layout: { padding: { right: 90 } },
                     plugins: { legend: { display: false } },
-                    scales: { x: { title: { display: true, text: "Age" } }, y: { min, max, title: { display: true, text: label } } }
+                    scales: { y: { min, max, title: { display: true, text: label } } }
                 },
                 plugins: [rightLabelPlugin]
             }));
         }
 
+        /* Percentile text */
+        function getPercentileText(value, curves, ageIndex, percentiles) {
+            if (!curves.length) return "No data available";
+
+            if (value < curves[0][ageIndex])
+                return "Below " + percentiles[0] + "th percentile";
+
+            for (let i = 0; i < curves.length - 1; i++) {
+                if (value >= curves[i][ageIndex] && value < curves[i + 1][ageIndex])
+                    return percentiles[i] + "–" + percentiles[i + 1] + " percentile";
+            }
+
+            return "Above " + percentiles[percentiles.length - 1] + "th percentile";
+        }
+
+        /* Generate charts */
         function generate() {
+
+            const gender = document.getElementById("gender").value;
+            const age = parseFloat(document.getElementById("age").value);
+            const height = parseFloat(document.getElementById("height").value);
+            const weight = parseFloat(document.getElementById("weight").value);
+            const waist = parseFloat(document.getElementById("waist").value);
+
+            /* Input validation */
+            if (height < 80 || height > 200) return alert("Enter valid height (80–200 cm)");
+            if (weight < 10 || weight > 120) return alert("Enter valid weight (10–120 kg)");
+            if (waist < 40 || waist > 120) return alert("Enter valid waist (40–120 cm)");
+
             charts.forEach(c => c.destroy());
             charts = [];
-            const age = +document.getElementById("age").value;
-            const height = +document.getElementById("height").value;
-            const weight = +document.getElementById("weight").value;
-            const waist = +document.getElementById("waist").value;
-            const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
 
-            drawChart(heightChart, H, height, age, "Height (cm)", 95, 195);
-            drawChart(weightChart, WT, weight, age, "Weight (kg)", 10, 80);
-            drawChart(bmiChart, BMI, bmi, age, "BMI", 12, 40);
-            drawChart(waistChart, W, waist, age, "Waist (cm)", 45, 110);
+            const data = GROWTH_DATA[gender];
+            const bmi = Number((weight / ((height / 100) ** 2)).toFixed(1));
+
+            const ageIndex = AGES.indexOf(age);
+
+            /* Percentile results */
+            heightResult.innerText = "Child is in " + getPercentileText(height, data.height, ageIndex, PERCENTILES_HW);
+            weightResult.innerText = "Child is in " + getPercentileText(weight, data.weight, ageIndex, PERCENTILES_HW);
+            bmiResult.innerText = "Child is in " + getPercentileText(bmi, data.bmi, ageIndex, PERCENTILES_BMI);
+            waistResult.innerText = "Child is in " + getPercentileText(waist, data.waist, ageIndex, PERCENTILES_WAIST);
+
+            /* Draw charts */
+            drawChart("heightChart", data.height, PERCENTILES_HW, height, age, "Height (cm)", 95, 195);
+            drawChart("weightChart", data.weight, PERCENTILES_HW, weight, age, "Weight (kg)", 10, 90);
+            drawChart("bmiChart", data.bmi, PERCENTILES_BMI, bmi, age, "BMI", 12, 40);
+            drawChart("waistChart", data.waist, PERCENTILES_WAIST, waist, age, "Waist (cm)", 40, 110);
         }
     </script>
+
 </body>
 
 </html>
