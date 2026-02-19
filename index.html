@@ -1,131 +1,49 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Growth Chart Generator</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background: #f6d3ef;
-      text-align: center;
-      padding: 20px;
-      margin: 0;
-    }
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 16px;
-    }
-    h2 {
-      font-size: 1.6rem;
-    }
-    h3 {
-      font-size: 1.1rem;
-      margin-top: 18px;
-    }
-    textarea, input {
-      width: 100%;
-      max-width: 600px;
-      margin: 6px auto;
-      padding: 10px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      display: block;
-    }
-    textarea {
-      resize: vertical;
-      min-height: 42px;
-    }
-    button {
-      padding: 12px 28px;
-      font-size: 1rem;
-      background: #7a2d91;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 10px;
-      transition: background 0.2s;
-    }
-    button:hover {
-      background: #5e1d70;
-    }
-    .chart-wrapper {
-      width: 100%;
-      max-width: 900px;
-      margin: 20px auto 0;
-      background: white;
-      border-radius: 8px;
-      padding: 10px;
-    }
-    .chart-wrapper canvas {
-      width: 100% !important;
-    }
+<title>Growth Chart Generator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    /* Desktop: wider inputs & more padding */
-    @media (min-width: 768px) {
-      body {
-        padding: 30px 20px;
-      }
-      h2 {
-        font-size: 2rem;
-      }
-      textarea, input {
-        max-width: 700px;
-        padding: 12px;
-      }
-    }
-
-    /* Small phones */
-    @media (max-width: 480px) {
-      body {
-        padding: 12px 8px;
-      }
-      h2 {
-        font-size: 1.3rem;
-      }
-      h3 {
-        font-size: 1rem;
-      }
-      button {
-        width: 100%;
-        max-width: 300px;
-      }
-      .chart-wrapper {
-        padding: 6px;
-      }
-    }
-
-    /* Mobile: make chart taller */
-    @media (max-width: 768px) {
-      .chart-wrapper {
-        min-height: 400px;
-      }
-      .chart-wrapper canvas {
-        min-height: 380px;
-      }
-    }
-  </style>
+<style>
+body{
+  font-family: Arial;
+  background:#f6d3ef;
+  text-align:center;
+  padding:20px;
+}
+textarea,input{
+  width:90%;
+  margin:6px;
+  padding:8px;
+}
+button{
+  padding:10px 20px;
+  font-size:16px;
+  background:#7a2d91;
+  color:white;
+  border:none;
+  cursor:pointer;
+  margin:10px;
+}
+canvas{
+  background:white;
+  margin-top:20px;
+  padding:10px;
+}
+</style>
 </head>
+
 <body>
-<div class="container">
 
-<h2>📈 Percentile Chart Generator</h2>
+<h2>Percentile Chart Generator</h2>
 
-<input id="title" placeholder="Chart Title (eg Waist Circumference)">
-<input id="ylabel" placeholder="Y Axis Label (eg Waist in cm)">
+<input id="title" placeholder="Chart Title">
+<input id="ylabel" placeholder="Y Axis Label">
 
-<h3>Enter Ages (X axis)</h3>
+<h3>Ages (X axis)</h3>
 <textarea id="ages">5,6,7,8,9,10,11,12,13,14,15,16,17</textarea>
 
-<h3>Enter Percentile Data (comma separated)</h3>
-
+<h3>Percentile Data</h3>
 <textarea id="p3">47,49,51,53,55,57,59,61,63,65,66,67,68</textarea>
 <textarea id="p10"></textarea>
 <textarea id="p25"></textarea>
@@ -136,10 +54,9 @@
 
 <br>
 <button onclick="generateChart()">Generate Chart</button>
+<button onclick="downloadChart()">Download PNG</button>
 
-<div class="chart-wrapper">
-  <canvas id="chart"></canvas>
-</div>
+<canvas id="chart" width="900" height="500"></canvas>
 
 <script>
 let chart;
@@ -155,7 +72,8 @@ function dataset(label,data,color,width=2){
     borderColor:color,
     fill:false,
     tension:0.4,
-    borderWidth:width
+    borderWidth:width,
+    pointRadius:0
   }
 }
 
@@ -177,44 +95,63 @@ function generateChart(){
 
   chart = new Chart(document.getElementById("chart"), {
     type:"line",
-    data:{
-      labels:ages,
-      datasets:dataSets
-    },
+    data:{ labels:ages, datasets:dataSets },
     options:{
       responsive:true,
-      maintainAspectRatio: window.innerWidth > 768,
       plugins:{
-        legend:{
-          display:true,
-          labels:{
-            font:{ size: window.innerWidth <= 768 ? 14 : 12 },
-            padding: window.innerWidth <= 768 ? 12 : 10
-          }
-        },
+        legend:{display:false},
         title:{
           display:true,
           text:document.getElementById("title").value,
-          font:{ size: window.innerWidth <= 768 ? 18 : 16 }
+          font:{size:20}
         }
       },
       scales:{
         x:{
-          title:{display:true, text:"Age (Years)", font:{ size: window.innerWidth <= 768 ? 14 : 12 }},
-          ticks:{ font:{ size: window.innerWidth <= 768 ? 13 : 11 }},
-          grid:{color:"#999"}
+          title:{display:true,text:"Age (Years)"},
+          grid:{color:"#888"}
         },
+
         y:{
-          title:{display:true, text:document.getElementById("ylabel").value, font:{ size: window.innerWidth <= 768 ? 14 : 12 }},
-          ticks:{ font:{ size: window.innerWidth <= 768 ? 13 : 11 }},
-          grid:{color:"#999"}
+          title:{display:true,text:document.getElementById("ylabel").value},
+          grid:{color:"#888"}
         }
+      },
+      layout:{
+        padding:{ right:80 }
       }
-    }
+    },
+    plugins:[{
+      id:"endLabels",
+      afterDraw(chart){
+        const ctx = chart.ctx;
+        const pLabels = ["P3","P10","P25","P50","P70","P85","P95"];
+        chart.data.datasets.forEach((ds, i) => {
+          const meta = chart.getDatasetMeta(i);
+          const lastPoint = meta.data[meta.data.length - 1];
+          if(!lastPoint) return;
+          const x = lastPoint.x;
+          const y = lastPoint.y;
+          const val = ds.data[ds.data.length - 1];
+          ctx.save();
+          ctx.font = "bold 11px Arial";
+          ctx.fillStyle = ds.borderColor;
+          ctx.textBaseline = "middle";
+          ctx.fillText(pLabels[i] + " (" + val + ")", x + 8, y);
+          ctx.restore();
+        });
+      }
+    }]
   });
+}
+
+function downloadChart(){
+  const link=document.createElement("a");
+  link.download="chart.png";
+  link.href=document.getElementById("chart").toDataURL();
+  link.click();
 }
 </script>
 
-</div>
 </body>
 </html>
