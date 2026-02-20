@@ -197,13 +197,21 @@
             const data = GROWTH_DATA[gender];
             const bmi = Number((weight / ((height / 100) ** 2)).toFixed(1));
 
-            const ageIndex = AGES.indexOf(age);
+            const ageIndexHW = AGES.indexOf(age);
+            const ageIndexWaist = AGES_2.indexOf(age);
 
             /* Percentile results */
-            heightResult.innerText = "Child is in " + getPercentileText(height, data.height, ageIndex, PERCENTILES_HW);
-            weightResult.innerText = "Child is in " + getPercentileText(weight, data.weight, ageIndex, PERCENTILES_HW);
-            bmiResult.innerText = "Child is in " + getPercentileText(bmi, data.bmi, ageIndex, PERCENTILES_BMI);
-            waistResult.innerText = "Child is in " + getPercentileText(waist, data.waist, ageIndex, PERCENTILES_WAIST);
+            heightResult.innerText = "Child is in " +
+                getPercentileText(height, data.height, ageIndexHW, PERCENTILES_HW);
+
+            weightResult.innerText = "Child is in " +
+                getPercentileText(weight, data.weight, ageIndexHW, PERCENTILES_HW);
+
+            bmiResult.innerText = "Child is in " +
+                getPercentileText(bmi, data.bmi, ageIndexHW, PERCENTILES_BMI);
+
+            waistResult.innerText = "Child is in " +
+                getPercentileText(waist, data.waist, ageIndexWaist, PERCENTILES_WAIST);
 
             /* Draw charts */
 
