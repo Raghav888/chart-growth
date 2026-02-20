@@ -97,7 +97,7 @@
         let charts = [];
 
         /* populate age dropdown */
-        AGES.forEach(a => {
+        AGES_2.forEach(a => {
             const op = document.createElement("option");
             op.value = a;
             op.innerText = a + " years";
@@ -121,13 +121,12 @@
         };
 
         /* Draw chart */
-        function drawChart(id, curves, percentiles, value, age, label, min, max) {
-            const child = AGES.map(a => a == age ? value : null);
-
+        function drawChart(id, curves, percentiles, value, age, label, min, max, labels) {
+            const child = labels.map(a => a == age ? value : null);
             charts.push(new Chart(document.getElementById(id), {
                 type: 'line',
                 data: {
-                    labels: AGES,
+                    labels: labels,
                     datasets: [
                         ...curves.map((c, i) => ({
                             label: percentiles[i],
@@ -135,7 +134,8 @@
                             borderColor: "#000",
                             borderWidth: 2,
                             pointRadius: 0,
-                            tension: .4
+                            tension: label === "Waist (cm)" ? 0 : .4,
+                            cubicInterpolationMode: 'monotone'
                         })),
                         {
                             label: "Child",
@@ -206,15 +206,17 @@
             waistResult.innerText = "Child is in " + getPercentileText(waist, data.waist, ageIndex, PERCENTILES_WAIST);
 
             /* Draw charts */
-            drawChart("heightChart", data.height, PERCENTILES_HW, height, age, "Height (cm)", 95, 195);
-            drawChart("weightChart", data.weight, PERCENTILES_HW, weight, age, "Weight (kg)", 10, 90);
-            drawChart("bmiChart", data.bmi, PERCENTILES_BMI, bmi, age, "BMI", 12, 40);
-            drawChart("waistChart", data.waist, PERCENTILES_WAIST, waist, age, "Waist (cm)", 40, 110);
+
+            drawChart("heightChart", data.height, PERCENTILES_HW, height, age, "Height (cm)", 95, 195, AGES);
+
+            drawChart("weightChart", data.weight, PERCENTILES_HW, weight, age, "Weight (kg)", 10, 90, AGES);
+
+            drawChart("bmiChart", data.bmi, PERCENTILES_BMI, bmi, age, "BMI", 12, 40, AGES);
+
+            drawChart("waistChart", data.waist, PERCENTILES_WAIST, waist, age, "Waist (cm)", 40, 110, AGES_2);
         }
     </script>
 
 </body>
 
 </html>
-
-
